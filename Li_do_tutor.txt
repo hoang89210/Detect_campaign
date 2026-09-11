@@ -1,0 +1,60 @@
+WITH dim_stage AS (
+    SELECT id, CATEGORY_ID, NAME STAGE_NAME, STATUS_ID, SORT
+    FROM BITRIX24.B_CRM_STATUS
+    WHERE CATEGORY_ID = 11 AND
+     ENTITY_ID LIKE 'DEAL_STAGE%'
+), base_data AS (
+    SELECT 
+    	deal.id,
+        MAPPHONE.VALUE,
+        deal.STAGE_ID,
+        camp.CAMP_LEVEL2,
+        MIN(CASE WHEN dim_stage.sort >= 30 THEN stage.CREATED_TIME END) AS l1,
+        MIN(CASE WHEN dim_stage.sort >= 40 THEN stage.CREATED_TIME END) AS l2,
+        MIN(CASE WHEN dim_stage.sort >= 50 THEN stage.CREATED_TIME END) AS l3,
+        MIN(CASE WHEN dim_stage.sort >= 60 THEN stage.CREATED_TIME END) AS l4,
+        MIN(CASE WHEN dim_stage.sort >= 70 THEN stage.CREATED_TIME END) AS l5,
+        MIN(CASE WHEN dim_stage.sort >= 80 THEN stage.CREATED_TIME END) AS l6,
+        MIN(CASE WHEN dim_stage.sort >= 90 THEN stage.CREATED_TIME END) AS l7,
+        MIN(CASE WHEN dim_stage.sort >= 100 THEN stage.CREATED_TIME END) AS l8,
+        TRUNC(deal.DATE_CREATE) AS date_create,
+        max(dim_stage.SORT) as max_deal_stage_sort
+    FROM BITRIX24.B_CRM_DEAL   deal
+    LEFT JOIN BITRIX24.B_UTS_CRM_DEAL detail_deal ON detail_deal.VALUE_ID = deal.ID 
+    LEFT JOIN BITRIX24.B_CRM_FIELD_MULTI MAPPHONE 
+        ON deal.CONTACT_ID = MAPPHONE.ELEMENT_ID 
+       AND MAPPHONE.ENTITY_ID = 'CONTACT'
+       AND MAPPHONE.TYPE_ID = 'PHONE'
+    LEFT JOIN BITRIX24.B_CRM_DEAL_STAGE_HISTORY stage 
+        ON stage.OWNER_ID = deal.ID
+    LEFT JOIN dim_stage 
+        ON stage.STAGE_ID = dim_stage.STATUS_ID 
+       AND deal.CATEGORY_ID = dim_stage.CATEGORY_ID
+    LEFT JOIN ods_da.BOD_DIM_CAMPAIGNS camp 
+        ON detail_deal.UF_CRM_CAMPAIGN_CODE = camp.ID
+          WHERE 
+     dim_stage.SORT >= 20 and dim_stage.SORT <= 100      
+     
+    GROUP BY deal.id,
+        MAPPHONE.VALUE,
+        deal.STAGE_ID,
+        camp.CAMP_LEVEL2,
+        TRUNC(deal.DATE_CREATE)
+        
+        
+)
+,
+li_do_fail AS (
+SELECT *
+FROM (
+    SELECT 
+        base_data.*,
+        ROW_NUMBER() OVER (PARTITION BY VALUE ORDER BY date_create DESC) AS rnk,
+        dim_stage.STAGE_NAME
+    FROM base_data
+    LEFT JOIN dim_stage ON dim_stage.sort = base_data.max_deal_stage_sort
+)
+WHERE rnk = 1)
+
+SELECT value, stage_name FROM li_do_fail WHERE 
+VALUE IN ()

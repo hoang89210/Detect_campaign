@@ -1,0 +1,26 @@
+  SELECT 
+      leads.id,
+      leads.FULL_NAME,
+      leads.date_create,
+      leads.status_id,
+  	row_number()over(PARTITION BY mapphone.VALUE ORDER BY leads.DATE_CREATE desc) AS rnk,
+      camp.CAMP_LEVEL2,
+      camp.CAMP_LEVEL3,
+      CAMP.CAMPAIGN_NAME,
+      mapphone.VALUE AS phone,
+      detail_lead.UF_CRM_L_SUB_STATUS,
+      detail_lead.UF_CRM_L_LY_DO_THAT_BAI,
+      detail_lead.UF_CAMPAIGN_CODE,
+      detail_lead.UF_CRM_DISTRIBUTOR,
+      detail_lead.UF_CRM_SO_LAN_GOI_RA,
+      detail_lead.UF_DISTRIBUTED_DATE,
+      detail_lead.UF_CRM_STUDENT_CLASS AS lop
+    FROM BITRIX24.B_CRM_LEAD leads
+    LEFT JOIN BITRIX24.B_UTS_CRM_LEAD detail_lead 
+           ON leads.ID = detail_lead.VALUE_ID
+    LEFT JOIN ODS_DA.BOD_DIM_CAMPAIGNS camp 
+           ON detail_lead.UF_CAMPAIGN_CODE = camp.ID 
+    LEFT JOIN B_CRM_FIELD_MULTI mapphone ON mapphone.ELEMENT_ID = leads.id 
+    			AND mapphone.ENTITY_ID ='LEAD'
+    			AND mapphone.TYPE_ID = 'PHONE'
+    WHERE camp.CAMP_LEVEL2 = '1.3 Uniclass - DEMO CTV'

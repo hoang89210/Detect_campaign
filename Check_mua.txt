@@ -1,0 +1,26 @@
+WITH b AS (
+   SELECT 
+	extract(MONTH FROM orders.ORDER_DATE )AS m, 
+	ORDER_DATE AS ngay_ban,
+	ORDERS.PHONE phone,
+	orders.CAMPAIGN_NAME ,
+	crm_pack.name AS pack ,
+	orders.CUSTOMER_NAME,
+	orders.PRICE,
+	cc.PRODUCT,
+	cc.PRODUCT_GROUP,
+	cc.PRODUCT_NAME_SMS,
+	orders.ORDER_DATE,
+	orders.CRM_CONTACT_ID ,
+	orders.CRM_CHILDREN_ID, 
+	dense_rank()over(PARTITION BY phone ORDER BY product_group asc ) AS lan_mua,
+	row_number()OVER (PARTITION BY phone ORDER BY order_date desc) AS rnk 
+
+FROM EDUCA_CRM.CRM_ORDER orders
+LEFT JOIN EDUCA_CRM.CRM_Package crm_pack ON ORDERS.PACKAGE_ID = CRM_PACK.ID
+LEFT JOIN educa_crm.CRM_CATEGORIES cc ON cc.id =  crm_pack."TYPE" 
+LEFT JOIN ODS_DA.BOD_DIM_CAMPAIGNS bdc ON bdc.CAMPAIGN_NAME = orders.CAMPAIGN_NAME 
+WHERE orders.price > 0 AND cc.STATUS =1
+AND crm_pack.NAME NOT LIKE '%uni%')
+
+SELECT  lan_mua, phone,PRODUCT_GROUP  FROM b WHERE phone IN () AND rnk = 1
